@@ -37,7 +37,44 @@ Ask the user up front — do not guess:
 
 Skip this section if the user has already given path + type in the request.
 
+## Setup (one-time, before first run)
+
+This skill pulls in four external tools. Verify each one before running the
+pipeline; install the missing ones. Run these on the host where mavis
+daemon is running (Windows / macOS / Linux all work; commands shown are
+the Windows / PowerShell variant — translate `&&` to `;` for PowerShell 5.1
+or use the bash equivalent on macOS / Linux).
+
+| # | Dependency | Check | Install if missing |
+|---|---|---|---|
+| 1 | **ffmpeg** | `python -c "import imageio_ffmpeg; print(imageio_ffmpeg.get_ffmpeg_exe())"` (must print a path to `ffmpeg-*.exe`) | `pip install imageio-ffmpeg` (Windows-friendly fallback; see `references/ffmpeg-path.md` for why this beats `winget install`) |
+| 2 | **python3 shim** (Windows only) | `where python3` — must NOT point at the Microsoft Store stub under `WindowsApps` | If only `python.exe` is in `C:\Program Files\Python312\`, create a copy at `%USERPROFILE%\bin\python3.exe` and prepend `%USERPROFILE%\bin` to the user PATH |
+| 3 | **Playwright** (Node.js ≥ 18) | `node -e "require('playwright')"` (must exit 0) | `npm install -g playwright` (do **not** also run `npx playwright install chromium` — we will use the preinstalled Edge instead) |
+| 4 | **Microsoft Edge** (Windows 10/11) | `Test-Path "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"` (must be True) | Preinstalled on every Windows 10/11 box; if missing, install via `winget install Microsoft.Edge` or download from microsoft.com |
+| 5 | **Matrix MCP auth** | `mavis mcp auth status matrix` (must show `authenticated`) | `mavis mcp auth login matrix` — the matrix MCP server is the only one that needs the user's own login; everything else uses the daemon's shared credentials |
+
+Run this check once at the start of a session; do not re-run per PDF.
+
+```powershell
+# Quick env check (run from a PowerShell prompt)
+$checks = @{
+  'ffmpeg'          = { python -c "import imageio_ffmpeg; print(imageio_ffmpeg.get_ffmpeg_exe())" 2>$null }
+  'playwright'      = { node -e "require('playwright')" 2>$null }
+  'edge'            = { Test-Path "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" }
+  'matrix auth'     = { mavis mcp auth status matrix 2>$null | Select-String "authenticated" }
+}
+foreach ($k in $checks.Keys) { Write-Host ("{0,-14} {1}" -f $k, (& $checks[$k] ? "OK" : "MISSING")) }
+```
+
+If any line prints `MISSING`, install that one component and re-run the
+check. Once all four are green, the rest of the pipeline will just work.
+
 ## Procedure
+
+0. **Pre-flight env check** (5 seconds — only if Setup was not run in the
+   current session; skip otherwise).
+   Why: a missing dep usually surfaces as a cryptic 2-minute timeout
+   later in the pipeline. Catching it here saves debugging time.
 
 1. **Locate and verify the file**.
    `Get-ChildItem -Path '<path-glob>' -File | Select-Object FullName, Length`.

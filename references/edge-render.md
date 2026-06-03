@@ -34,6 +34,31 @@ node "$env:USERPROFILE\.mavis\agents\mavis\workspace\render_msedge.cjs" `
      --in "page.html" --out "out.pdf" --format A4 --margin "14mm 12mm" --wait 3000
 ```
 
+## Auto-retry on transient render failures
+
+The shipped `render_html.cjs` only retries on **launch** failure (it then
+runs `npx playwright install chromium` and re-launches). It does **not**
+retry on **render** failure — and Edge's `page.pdf()` occasionally fails
+with `Protocol error (Page.printToPDF): Printing failed` on the first
+try, then succeeds on the second.
+
+The patched `render_msedge.cjs` shipped with this skill wraps the entire
+launch + render cycle in a 2-attempt retry loop. Each attempt gets a
+fresh browser instance, with a 2-second pause between attempts. The
+JSON output includes an `attempts` field so you can see whether retry
+fired:
+
+```json
+{"status":"ok","out":"...","size_kb":525,"format":"A4","landscape":false,"attempts":2}
+{"status":"retry","attempt":1,"next":2,"error":"Error: ..."}
+```
+
+If both attempts fail, the error JSON includes the final `error` and
+a `hint` to either install Chromium (`npx playwright install chromium`)
+or restart Edge. Auto-install of Chromium is **only** attempted on
+launch failure, not on render failure — render failures are usually
+transient and reinstalling Chromium would not help.
+
 ## Verify
 
 After render, sanity-check with `pdfplumber` (Python; available via

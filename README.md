@@ -28,14 +28,17 @@
 
 详细步骤见 `SKILL.md`,各环节的工程细节见 `references/`。
 
-## 依赖
+## 依赖(首次使用前运行 Setup)
 
-| 依赖 | 来源 |
-|---|---|
-| `imageio-ffmpeg`(含 ffmpeg.exe) | `pip install imageio-ffmpeg` |
-| Microsoft Edge | Windows 10/11 预装 |
-| mavis daemon + matrix MCP | 由 Mavis 框架提供 |
-| Edge 渲染需要 Playwright | `npm install -g playwright` |
+| # | 依赖 | 检查命令 | 安装命令 |
+|---|---|---|---|
+| 1 | ffmpeg(通过 `imageio-ffmpeg`) | `python -c "import imageio_ffmpeg; print(imageio_ffmpeg.get_ffmpeg_exe())"` | `pip install imageio-ffmpeg` |
+| 2 | python3 shim(Windows only) | `where python3`(必须不是 Microsoft Store 的桩) | 见 `references/ffmpeg-path.md` |
+| 3 | Playwright | `node -e "require('playwright')"` | `npm install -g playwright`(**不**要跑 `npx playwright install chromium`,我们用 Edge) |
+| 4 | Microsoft Edge | `Test-Path "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"` | Windows 10/11 预装,缺失则 `winget install Microsoft.Edge` |
+| 5 | Matrix MCP 认证 | `mavis mcp auth status matrix`(必须 `authenticated`) | `mavis mcp auth login matrix` |
+
+所有 5 项 `OK` 后,本仓库代码即可一键运行。
 
 ## License
 
