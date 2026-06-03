@@ -1,0 +1,29 @@
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Node / Playwright scratch
+node_modules/
+.cache/
+
+# Local build / test artifacts
+*.tmp
+*.log
+*.bak
+
+# Secrets — never commit
+.env
+.env.local
+*.pem
+*.key
+credentials.json
+
+# Working files for the author (not part of the skill)
+/scratch/
+/test-output/
