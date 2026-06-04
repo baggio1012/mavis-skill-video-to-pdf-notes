@@ -8,31 +8,72 @@ and re-tries. When that also fails, the only stable alternative on
 Windows is to launch **Microsoft Edge** (preinstalled on every
 Windows 10/11 box) via Playwright's `channel: 'msedge'`.
 
-## One-line shim
+## Use the bundled `render_msedge.cjs` (recommended)
 
-Copy `render_html.cjs` to a working directory, then patch both
-`chromium.launch()` call sites to pass `{ channel: 'msedge' }`:
+This skill ships a ready-to-use `render_msedge.cjs` (in
+`references/render_msedge.cjs`) that already has the `channel: 'msedge'`
+patch **and** a 2-attempt auto-retry loop. To use it:
 
 ```powershell
-Copy-Item `
-  "$env:USERPROFILE\.mavis\.builtin-skills\minimax-pdf\scripts\render_html.cjs" `
-  "$env:USERPROFILE\.mavis\agents\mavis\workspace\render_msedge.cjs"
+# 1. Copy the bundled cjs to a writable workspace directory
+$skillDir  = "$env:USERPROFILE\.mavis\skills\video-to-pdf-notes-2"
+$workspace = "$env:USERPROFILE\.mavis\agents\mavis\workspace"
+Copy-Item "$skillDir\references\render_msedge.cjs" "$workspace\render_msedge.cjs" -Force
 
-$content = Get-Content "$env:USERPROFILE\.mavis\agents\mavis\workspace\render_msedge.cjs" -Raw
+# 2. Run it on your HTML
+node "$workspace\render_msedge.cjs" `
+     --in "page.html" --out "out.pdf" --format A4 --margin "14mm 12mm" --wait 3000
+```
+
+If you import this skill into MiniMax Code from GitHub, you do **not**
+need to run any setup — the `render_msedge.cjs` is already part of the
+skill. Just open the file, copy it to your workspace, and call it
+from your skill's HTML-render step.
+
+## What the bundled cjs does differently
+
+Two changes vs the upstream `render_html.cjs`:
+
+1. `chromium.launch({ channel: 'msedge' })` on **both** launch sites
+   (line 122 and line 140 in the original), so we never fall through
+   to Playwright's Chromium download.
+2. A 2-attempt retry loop around the entire launch+render cycle. Each
+   attempt gets a fresh browser instance; the second attempt is
+   preceded by a 2-second pause to let Edge clean up. This absorbs
+   transient `Protocol error (Page.printToPDF): Printing failed` errors
+   that succeed on the second try (observed in practice — see
+   `references/ffmpeg-path.md` for the broader context).
+
+The JSON output includes an `attempts` field so you can see whether
+retry fired:
+
+```json
+{"status":"ok","out":"...","size_kb":525,"format":"A4","landscape":false,"attempts":2}
+{"status":"retry","attempt":1,"next":2,"error":"Error: ..."}
+```
+
+## Patching the upstream cjs manually (legacy / debugging)
+
+If you need to patch the upstream `render_html.cjs` directly (e.g.
+when running this skill's HTML through a different framework), the
+one-line shim is:
+
+```powershell
+$src = "$env:USERPROFILE\.mavis\.builtin-skills\minimax-pdf\scripts\render_html.cjs"
+$dst = "$env:USERPROFILE\.mavis\agents\mavis\workspace\render_msedge.cjs"
+Copy-Item $src $dst -Force
+
+$content = Get-Content $dst -Raw
 $content = $content.Replace(
   'chromium.launch()',
   "chromium.launch({ channel: 'msedge' })"
 )
-Set-Content -Path "$env:USERPROFILE\.mavis\agents\mavis\workspace\render_msedge.cjs" `
-           -Value $content -Encoding UTF8
+Set-Content -Path $dst -Value $content -Encoding UTF8
 ```
 
-## Run
-
-```powershell
-node "$env:USERPROFILE\.mavis\agents\mavis\workspace\render_msedge.cjs" `
-     --in "page.html" --out "out.pdf" --format A4 --margin "14mm 12mm" --wait 3000
-```
+This produces a cjs with `channel: 'msedge'` patched in but **without**
+the auto-retry loop — useful for debugging whether retry itself is
+the source of a problem, but not for production use.
 
 ## Auto-retry on transient render failures
 

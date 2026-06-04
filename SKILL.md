@@ -128,12 +128,15 @@ check. Once all four are green, the rest of the pipeline will just work.
    8. Verbatim transcript split by `[hh:mm]` markers
    9. Appendix: pipeline notes + disclaimer
 
-6. **Render HTML → PDF**. Use the `minimax-pdf` skill. The bundled
-   `render_html.cjs` defaults to Chromium which may not be installed; on
-   Windows fall back to Edge with the `channel: 'msedge'` shim in
-   `references/edge-render.md`. Verify after render:
-   `pdfinfo` or `pdfplumber.open(...)` to confirm page count and that the
-   TOC link annotations are present (`/Annots` with `/Subtype /Link`).
+6. **Render HTML → PDF**. The ready-to-use `references/render_msedge.cjs`
+   in this skill already has the `channel: 'msedge'` patch + 2-attempt
+   auto-retry loop. Copy it to the workspace and invoke it (see
+   `references/edge-render.md` for the one-line setup). The original
+   upstream `render_html.cjs` from the `minimax-pdf` skill defaults
+   to Chromium which may not be installed; do not rely on it. Verify
+   after render with `pdfplumber.open(...)`: confirm page count and
+   that the TOC link annotations are present (`/Annots` with
+   `/Subtype /Link`).
 
 7. **Verify page count vs hand-written TOC numbers**. Iterate once if the
    TOC points to wrong pages (the rendered page count usually differs by
