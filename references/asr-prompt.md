@@ -43,27 +43,79 @@ content type changes.
 
 ## Meeting / panel / 多 speaker
 
-Replace 任务 2 with:
+Use the full prompt below when the source has multiple speakers (a
+recorded Tencent Meeting / Zoom call, a panel discussion, a round-table
+podcast). The meeting variant differs from the lecture variant in two
+ways: 任务 1 must label each speaker turn, and 任务 2 emphasises
+decisions and action items over abstract analysis.
 
 ```text
+这是一段中文会议录像(约 {N} 分钟,共 {M} 位发言人)。请按下面要求完成两件事:
+
+【任务 1:逐字稿(verbatim transcript)】
+完整转录全部发言,逐字不漏。每段发言前用说话人标签区分,如:
+【主持人】、【嘉宾A】、【嘉宾B】、【记录人】。
+如果同一段发言跨越多个议题,用空行分段并标注议题。
+尽量标注大致时间戳(每 2-5 分钟一个),格式如 [00:00] [02:15] [04:30] ...。
+
+【任务 2:结构化会议纪要】
+在逐字稿之后,输出以下内容:
+
 ## 1. 会议概述
-时间、与会人、议题、决议总数。
+- 会议名称(如有) / 推断的会议类型
+- 时间(如能推断出)
+- 与会人(按角色:主持 / 嘉宾 / 记录人 等)
+- 议题清单(2-5 个)
+- 关键决议 / 行动项总数
 
 ## 2. 决策清单(decision log)
-每条决策一行:决策内容 + 决策人 + 截止时间(如有)。
+每条决策一行,严格使用以下格式:
+  - [决议] 决策内容
+    决策人: {name}
+    截止: {date 或 "无明确截止"}
+    类型: {战略 / 战术 / 流程 / 人事}
+
+如果会议中只讨论未决议,标记为 [讨论] 而非 [决议]。
 
 ## 3. 行动项(action items)
-每条:负责人 + 任务 + 截止时间 + 当前状态(如有)。
+每条行动项一行,严格使用以下格式:
+  - [行动] 任务描述
+    负责人: {name}
+    截止: {date}
+    状态: {新派 / 进行中 / 阻塞 / 完成(需证据)}
+    依赖: {依赖的其他行动项或外部条件,如有}
+
+如果某条行动项缺负责人,标记为 [行动-无主] 并在末尾汇总,不要替会议指定人选。
 
 ## 4. 关键讨论点
-按议题分组,每组列出正反观点和最终倾向。
+按议题分组,每组列出:
+- **议题 X:{议题名称}**
+  - 主要观点: ...
+  - 反对 / 不同意见: ...
+  - 最终倾向: ...(或"未达成共识")
 
 ## 5. 风险与未解决问题
-明确说"悬而未决"的事项,不要替会议下结论。
+明确说"悬而未决"的事项,不要替会议下结论。每条:
+- 风险: ...
+- 当前状态: ...
+- 需要谁 / 什么时候再确认: ...
 
 ## 6. 后续追踪
-需要在下次会议前确认/汇报的事项。
+需要在下次会议前确认 / 汇报的事项,按时间顺序排。
+
+请用中文回答,语言专业但好懂。这份材料会直接做成 PDF 报告,会被发给没参会的人看。
 ```
+
+Key differences vs the lecture variant:
+
+- The meeting variant **mandates speaker labels** in 任务 1 — the
+  reader can't follow who's saying what without them.
+- 任务 2 强制每条决策 / 行动项有 "谁、什么时候" 字段,便于直接抄
+  进 PDF 的表格列。
+- 加了一个 [行动-无主] 标记,防止模型瞎补负责人。
+- "请用中文回答... 会被发给没参会的人看" 是关键 prompt 信号,
+  让模型倾向于写出 context-complete 的内容,不依赖 speaker tone
+  或现场氛围。
 
 ## Movie / 纪录片 (rare — usually not the right tool)
 
